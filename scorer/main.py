@@ -63,8 +63,8 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df['type_encoded'] = le_type.transform(df['type'])
     df['balance_diff_orig'] = df['oldbalanceOrg'] - df['newbalanceOrig']
     df['balance_diff_dest'] = df['newbalanceDest'] - df['oldbalanceDest']
-df['amount_to_balance_orig'] = df['amount'] / (df['oldbalanceOrg'].replace(0, 1))
-df['amount_to_balance_dest'] = df['amount'] / (df['oldbalanceDest'].replace(0, 1))
+    df['amount_to_balance_orig'] = df['amount'] / (df['oldbalanceOrg'].replace(0, 1))
+    df['amount_to_balance_dest'] = df['amount'] / (df['oldbalanceDest'].replace(0, 1))
     df['is_zero_balance_orig'] = (df['oldbalanceOrg'] == 0).astype(int)
     df['is_zero_balance_dest'] = (df['oldbalanceDest'] == 0).astype(int)
     return df[features]
