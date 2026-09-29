@@ -1,3 +1,4 @@
 .env
 /data
 /scorer/data
+/Agents/**/corpus
