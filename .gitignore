@@ -1,4 +1,8 @@
 .env
 /data
 /scorer/data
-/Agents/**/corpus
+/Agents/corpus
+/Agents/chroma_db
+/Agents/duel_rounds.json
+__pycache__/
+*.pyc
