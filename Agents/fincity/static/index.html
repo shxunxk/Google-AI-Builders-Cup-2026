@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinCity — UPI Network Intelligence</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>FinCity</h1>
+                <span class="subtitle">UPI Fraud Network Intelligence</span>
+            </div>
+            <div class="header-center">
+                <div id="stats-panel" class="stats-panel">
+                    <div class="stat"><span id="stat-nodes">0</span><span class="stat-label">Accounts</span></div>
+                    <div class="stat"><span id="stat-edges">0</span><span class="stat-label">Links</span></div>
+                    <div class="stat"><span id="stat-rings">0</span><span class="stat-label">Review Clusters</span></div>
+                    <div class="stat"><span id="stat-risk">0</span><span class="stat-label">High Risk</span></div>
+                </div>
+            </div>
+            <div class="header-right">
+                <select id="txn-filter" class="control-select">
+                    <option value="1">Min Txns: 1</option>
+                    <option value="2">Min Txns: 2</option>
+                    <option value="5">Min Txns: 5</option>
+                    <option value="10">Min Txns: 10</option>
+                </select>
+                <select id="node-limit" class="control-select">
+                    <option value="200">Max Nodes: 200</option>
+                    <option value="500" selected>Max Nodes: 500</option>
+                    <option value="1000">Max Nodes: 1000</option>
+                </select>
+                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+            </div>
+        </header>
+
+        <div id="status-banner" class="status-banner" role="status" aria-live="polite">Loading network…</div>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Graph Canvas -->
+            <section class="graph-section">
+                <canvas id="graph-canvas"></canvas>
+                <div id="tooltip" class="tooltip hidden"></div>
+                <button id="reset-view-btn" class="btn btn-secondary btn-sm reset-view">Reset view</button>
+                <div id="legend" class="legend">
+                    <div class="legend-row">
+                        <span class="legend-dot customer"></span> Customer
+                        <span class="legend-dot merchant"></span> Merchant
+                        <span class="legend-dot high-risk"></span> Review Signal
+                    </div>
+                    <div class="legend-row">
+                        <span class="legend-edge normal"></span> Normal
+                        <span class="legend-edge fraud"></span> Review Signal
+                        <span class="legend-ring"></span> Review Cluster
+                    </div>
+                </div>
+            </section>
+
+            <!-- Side Panel -->
+            <aside class="side-panel" id="side-panel">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="details">Details</button>
+                    <button class="tab-btn" data-tab="rings">Clusters</button>
+                    <button class="tab-btn" data-tab="stats">Statistics</button>
+                </div>
+
+                <div class="panel-content" id="tab-details">
+                    <div id="node-details" class="details-content">
+                        <p class="placeholder">Click a node to view details</p>
+                    </div>
+                </div>
+
+                <div class="panel-content hidden" id="tab-rings">
+                    <div id="rings-list" class="rings-list"></div>
+                </div>
+
+                <div class="panel-content hidden" id="tab-stats">
+                    <div id="stats-detail" class="stats-detail"></div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Time Slider -->
+        <footer class="footer">
+            <div class="time-slider-container">
+                <label for="time-slider">Transaction Window:</label>
+                <input type="range" id="time-slider" min="0" max="0" value="0" step="1">
+                <span id="time-label">Step —</span>
+                <button id="play-btn" class="btn btn-sm" title="Play/Pause Animation" aria-label="Play animation">▶</button>
+                <button id="animation-speed" class="btn btn-secondary btn-sm" type="button" aria-label="Change animation speed">1x</button>
+            </div>
+        </footer>
+
+        <dialog id="courtroom-dialog" class="courtroom-dialog">
+            <div class="dialog-header">
+                <div>
+                    <p class="eyebrow">PILLAR 1 · COURTROOM</p>
+                    <h2>Cluster case file</h2>
+                </div>
+                <button id="close-courtroom" class="btn btn-secondary btn-sm" aria-label="Close case file">Close</button>
+            </div>
+            <div id="courtroom-content"></div>
+            <div class="dialog-actions">
+                <button id="run-courtroom" class="btn btn-primary">Run courtroom trial</button>
+            </div>
+        </dialog>
+    </div>
+
+    <script type="module" src="/static/graph.js"></script>
+    <script type="module" src="/static/controls.js"></script>
+</body>
+</html>

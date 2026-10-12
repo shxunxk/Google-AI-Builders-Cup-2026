@@ -10,8 +10,12 @@ import shutil
 import chromadb
 from chromadb.utils import embedding_functions
 import pdfplumber
+import fitz  # pymupdf
+import pytesseract
+from PIL import Image
 from pathlib import Path
 import argparse
+import io
 
 AGENTS_DIR = Path(__file__).parent
 CORPUS_DIR = AGENTS_DIR / "corpus"
@@ -19,12 +23,37 @@ CHROMA_PATH = AGENTS_DIR / "chroma_db"
 COLLECTION = "policy_corpus"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 MIN_CHUNK_CHARS = 100
+OCR_DPI = 200
 
 
 def get_ef():
     return embedding_functions.SentenceTransformerEmbeddingFunction(
         model_name=EMBED_MODEL
     )
+
+
+def _ocr_page(page: fitz.Page, dpi: int = OCR_DPI) -> str:
+    """Render a PyMuPDF page to an image and run Tesseract OCR."""
+    zoom = dpi / 72.0
+    mat = fitz.Matrix(zoom, zoom)
+    pix = page.get_pixmap(matrix=mat, alpha=False)
+    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+    return pytesseract.image_to_string(img)
+
+
+def _extract_page_text(pdfplumber_page, fitz_page, page_no: int) -> str:
+    """Try text extraction first; fall back to OCR if empty/too short."""
+    text = pdfplumber_page.extract_text() or ""
+    if len(text.strip()) >= MIN_CHUNK_CHARS:
+        return text
+    # Fallback: OCR the page
+    try:
+        ocr_text = _ocr_page(fitz_page)
+        if len(ocr_text.strip()) >= MIN_CHUNK_CHARS:
+            return ocr_text
+    except Exception:
+        pass
+    return ""
 
 
 def build_index(verbose: bool = True, rebuild: bool = False) -> str:
@@ -57,9 +86,12 @@ def build_index(verbose: bool = True, rebuild: bool = False) -> str:
     for pdf_path in pdfs:
         chunks = 0
         try:
-            with pdfplumber.open(pdf_path) as pdf:
-                for page_no, page in enumerate(pdf.pages):
-                    text = page.extract_text()
+            with pdfplumber.open(pdf_path) as pdf_plumber, \
+                 fitz.open(pdf_path) as pdf_fitz:
+                for page_no, (plumber_page, fitz_page) in enumerate(
+                    zip(pdf_plumber.pages, pdf_fitz)
+                ):
+                    text = _extract_page_text(plumber_page, fitz_page, page_no)
                     chunk_id = f"{pdf_path.stem}_p{page_no}"
                     if not text or len(text) < MIN_CHUNK_CHARS:
                         continue
@@ -96,10 +128,8 @@ def build_index(verbose: bool = True, rebuild: bool = False) -> str:
         for p in empty:
             print(f"  ! no text: {p.relative_to(CORPUS_DIR)}")
         if empty:
-            print(f"\n  {len(empty)} PDF(s) have no text layer (image-only scans).")
-            print("  pdfplumber/PyMuPDF cannot read them. Either re-download a")
-            print("  text-layer copy, or run OCR first (ocrmypdf/tesseract), or")
-            print("  convert them to .md summaries and put those in corpus/.")
+            print(f"\n  {len(empty)} PDF(s) still have no extractable text.")
+            print("  Check Tesseract install or try higher OCR_DPI.")
 
     return str(CHROMA_PATH)
 
@@ -114,4 +144,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Build the shared policy corpus index")
     ap.add_argument("--rebuild", action="store_true",
                     help="wipe the existing index and re-ingest everything")
-    build_index(rebuild=ap.parse_args().rebuild)
+    ap.add_argument("--ocr-dpi", type=int, default=OCR_DPI,
+                    help="DPI for OCR rendering (default: 200)")
+    args = ap.parse_args()
+    # Allow CLI override of OCR_DPI
+    import sys
+    if args.ocr_dpi != OCR_DPI:
+        globals()['OCR_DPI'] = args.ocr_dpi
+    build_index(rebuild=args.rebuild)
